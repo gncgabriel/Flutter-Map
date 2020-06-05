@@ -12,7 +12,7 @@ class _CampusPageState extends State<CampusPage> {
   Widget build(BuildContext context) {
     return new Scaffold(
       appBar: new AppBar(
-        title: new Text("Campus"),
+        title: new Text("Campus PUC Minas"),
       ),
       body: _buildBody(context),
       floatingActionButton: FloatingActionButton(
@@ -24,14 +24,6 @@ class _CampusPageState extends State<CampusPage> {
       ),
     );
   }
-
-  addDocs() {
-    Firestore.instance
-        .collection("campus")
-        .document("Teste")
-        .setData({"Rua": "A", "Numero": "7"});
-  }
-
   removeCampus(String nome) {
     Firestore.instance.collection("campus").document(nome).delete();
   }
