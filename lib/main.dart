@@ -7,6 +7,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import './record.dart';
+/*
+Essa é a pagina inicial do aplicativo, é exibido um mapa com a localização atual do usuário
+
+*/
 
 void main() => runApp(MyApp());
 
@@ -37,14 +41,15 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   Position _currentPosition;
   int _dialogued = 0;
-
-  void _showDialog(String title) {
+  String _title = "";
+  //Essa é mensagem exibida ao usuário quando ele está a menos de 100 metros de alguma PUC
+  void _showDialog() {
     showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
             title: new Text("Olá"),
-            content: new Text(title),
+            content: new Text(_title),
             actions: <Widget>[
               new FlatButton(
                   onPressed: () {
@@ -56,6 +61,7 @@ class _MyHomePageState extends State<MyHomePage> {
         });
   }
 
+  //Aqui é a barra superior com um menu lateral onde o usuário pode ir para a tela dos campus
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,6 +92,7 @@ class _MyHomePageState extends State<MyHomePage> {
         body: _home());
   }
 
+  //Aqui é exibido o mapa com a localização do usuário
   Widget _home() {
     _getCurrentLocation();
     GoogleMapController myAppController;
@@ -113,6 +120,11 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  /*
+  O método rastrea o usuário pegando suas coordenadas
+  toda vez q as coordenadas do usuário mudam, o método "verifyLocations()" é chamado
+  */
+
   _getCurrentLocation() {
     final Geolocator geolocator = Geolocator()..forceAndroidLocationManager;
     geolocator
@@ -133,37 +145,48 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  /*
+  O método abaixo pega uma lista com os endereços da PUC cadastrados no firebase.
+  Para cada endereço, é chamada uma função("contructLocations(endereço)") que irá retornar se a distância entre 
+  duas coordenadas é menor que 100 Metros, caso seja, uma caixa de dialogo é exibida com uma mensagem para o usuário.
+  Uma vez que o usuário se encontra em um campus da PUC, a mensagem é exibida uma única vez, até que o usuário visite outro
+  campus, ou se afaste e depois volte para o campus 
+  */
   verifyLocations() async {
     QuerySnapshot qs =
         await Firestore.instance.collection('campus').getDocuments();
     int aux = 0;
-    String response = null;
+    bool response = false;
     for (var i = 0; i < qs.documents.length; i++) {
       response = await constructLocations(qs.documents[i]);
-      if (response != null) {
-        aux++;
+      if (response) {
+        aux = 1;
       }
     }
 
-    print(aux);
-
-    if (aux == 1 ) {
-      if (_dialogued != 1) {
-        print("Chamou o dialogo");
-        _showDialog(response);
+    if (aux == 1) {
+      if (_dialogued == 0) {
+        _showDialog();
         _dialogued = 1;
       }
     } else {
-      response = null;
       _dialogued = 0;
     }
   }
 
+  /*
+  A função abaixo chama uma função do Google Cloud Function, essa função retornará a distância entre duas coordenadas
+  A primeira coordenada é a do usuário
+  A segunda coordenada é obitida através do endereço da PUC 
+  Os endereços da PUC estão armazenados no Firebase
+  Se a diferença das distâncias entre as duas coordenadas for menor que 100 Metros, um texto de mensagem é definido e 
+  a função retorna TRUE
+  */
   constructLocations(DocumentSnapshot doc) async {
     var lat1, lon1, lat2, lon2;
     lat1 = _currentPosition.latitude;
     lon1 = _currentPosition.longitude;
-    final record = Record.fromSnapshot(doc);
+    var record = Record.fromSnapshot(doc);
     String adress = record.rua + " " + record.numero;
     List<Placemark> a = await Geolocator().placemarkFromAddress(adress);
     lat2 = a[0].position.latitude;
@@ -187,12 +210,13 @@ class _MyHomePageState extends State<MyHomePage> {
       if (response.statusCode == HttpStatus.ok) {
         var data = await response.transform(utf8.decoder).join();
         result = double.parse(data);
-        print(record.nome);
-        print(result);
         if (result <= 100) {
-          return "Bem vindo à PUC Minas unidade " + record.nome;
+          setState(() {
+            _title = "Bem vindo à PUC Minas unidade " + record.nome;
+          });
+          return true;
         }
-        return null;
+        return false;
       }
     } catch (exception) {}
   }

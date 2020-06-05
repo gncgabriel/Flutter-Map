@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import './record.dart';
 
+//Essa é a página de gerenciamento dos endereços da PUC
+
 class CampusPage extends StatefulWidget {
   @override
   _CampusPageState createState() => new _CampusPageState();
@@ -24,6 +26,7 @@ class _CampusPageState extends State<CampusPage> {
       ),
     );
   }
+
   removeCampus(String nome) {
     Firestore.instance.collection("campus").document(nome).delete();
   }
@@ -45,6 +48,8 @@ class _CampusPageState extends State<CampusPage> {
       children: snapshot.map((data) => _buildListItem(context, data)).toList(),
     );
   }
+
+// Aqui o usuário ver os campus e pode excluir arrastando para o lado
 
   Widget _buildListItem(BuildContext context, DocumentSnapshot data) {
     final record = Record.fromSnapshot(data);
@@ -72,16 +77,18 @@ class _CampusPageState extends State<CampusPage> {
     );
   }
 
+//Aqui o usuário pode adicionar um novo Campus
+
   void showDialogAddCampus(BuildContext context) {
-    final nomeCampus =  TextEditingController();
+    final nomeCampus = TextEditingController();
     final ruaCampus = TextEditingController();
     final numeroCampus = TextEditingController();
 
-    adicionarCampus(){
-       Firestore.instance
-        .collection("campus")
-        .document(nomeCampus.text)
-        .setData({"Rua": ruaCampus.text, "Numero": numeroCampus.text+""});
+    adicionarCampus() {
+      Firestore.instance
+          .collection("campus")
+          .document(nomeCampus.text)
+          .setData({"Rua": ruaCampus.text, "Numero": numeroCampus.text + ""});
       Navigator.of(context).pop();
     }
 
